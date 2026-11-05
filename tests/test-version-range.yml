@@ -1,0 +1,31 @@
+name: Test partial version resolves to latest patch
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          swift-version: '5.10'
+      - name: Assert version resolved to 5.10.1
+        env:
+          ACTUAL: ${{ steps.action.outputs.version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "5.10.1" ]; then
+            echo "FAIL: expected '5.10.1'"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert swift --version
+        run: |
+          OUT="$(swift --version 2>&1)"
+          echo "$OUT"
+          if ! echo "$OUT" | grep -q "Swift version 5.10.1"; then
+            echo "FAIL: swift --version does not report 5.10.1"
+            exit 1
+          fi
+          echo "PASS"

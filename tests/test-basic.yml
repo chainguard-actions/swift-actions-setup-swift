@@ -1,0 +1,30 @@
+name: Test basic usage (default version)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+      - name: Assert version output
+        env:
+          ACTUAL: ${{ steps.action.outputs.version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "6.1" ] && [ "$ACTUAL" != "6.1.0" ]; then
+            echo "FAIL: expected version 6.1"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert swift is on PATH
+        run: |
+          which swift || { echo "FAIL: swift not on PATH"; exit 1; }
+          OUT="$(swift --version 2>&1)"
+          echo "$OUT"
+          if ! echo "$OUT" | grep -q "Swift version 6.1"; then
+            echo "FAIL: swift --version does not report 6.1"
+            exit 1
+          fi
+          echo "PASS"
