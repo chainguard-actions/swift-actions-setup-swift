@@ -1,0 +1,44 @@
+name: Test short version matches installed version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install fake swift reporting 5.10
+        run: |
+          mkdir -p "$RUNNER_TEMP/fakebin"
+          cat > "$RUNNER_TEMP/fakebin/swift" <<'EOF'
+          #!/bin/sh
+          echo "Swift version 5.10 (swift-5.10-RELEASE)"
+          echo "Target: x86_64-unknown-linux-gnu"
+          EOF
+          chmod +x "$RUNNER_TEMP/fakebin/swift"
+          cat > "$RUNNER_TEMP/fakebin/sudo" <<'EOF'
+          #!/bin/sh
+          echo "fake sudo should not be called" >&2
+          exit 1
+          EOF
+          chmod +x "$RUNNER_TEMP/fakebin/sudo"
+          echo "$RUNNER_TEMP/fakebin" >> "$GITHUB_PATH"
+      - id: action
+        uses: .
+        with:
+          swift-version: "5.10"
+      - name: Assert version output
+        env:
+          ACTUAL: ${{ steps.action.outputs.version }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "actual: $ACTUAL"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected success"
+            exit 1
+          fi
+          if [ "$ACTUAL" != "5.10" ]; then
+            echo "FAIL: expected '5.10'"
+            exit 1
+          fi
+          echo "PASS"

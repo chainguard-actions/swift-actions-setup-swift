@@ -1,0 +1,39 @@
+name: Test already installed version short-circuits
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install fake swift reporting 6.0.3
+        run: |
+          mkdir -p "$RUNNER_TEMP/fakebin"
+          cat > "$RUNNER_TEMP/fakebin/swift" <<'EOF'
+          #!/bin/sh
+          echo "Swift version 6.0.3 (swift-6.0.3-RELEASE)"
+          echo "Target: x86_64-unknown-linux-gnu"
+          EOF
+          chmod +x "$RUNNER_TEMP/fakebin/swift"
+          # fake sudo that fails so any install attempt is detected
+          cat > "$RUNNER_TEMP/fakebin/sudo" <<'EOF'
+          #!/bin/sh
+          echo "fake sudo should not be called" >&2
+          exit 1
+          EOF
+          chmod +x "$RUNNER_TEMP/fakebin/sudo"
+          echo "$RUNNER_TEMP/fakebin" >> "$GITHUB_PATH"
+      - id: action
+        uses: .
+        with:
+          swift-version: "6.0.3"
+      - name: Assert version output
+        env:
+          ACTUAL: ${{ steps.action.outputs.version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "6.0.3" ]; then
+            echo "FAIL: expected '6.0.3'"
+            exit 1
+          fi
+          echo "PASS"
